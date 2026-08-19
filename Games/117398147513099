@@ -1,0 +1,2 @@
+getgenv().Bloomware.Game = 17625359962
+getgenv().Bloomware:LoadFile(17625359962)
