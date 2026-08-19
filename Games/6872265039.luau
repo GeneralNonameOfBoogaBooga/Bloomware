@@ -19,7 +19,6 @@ local GameData = {
 }
 
 (function()
-    -- pls stop skidding ts :rage:
     Windows.Utility:CreateModule({
         Name = "Match History",
         Flag = "MatchHistroy",
