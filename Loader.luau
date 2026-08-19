@@ -17,7 +17,7 @@ local Players: Players = cloneref(game:GetService("Players"))
 local LocalPlayer: Player = Players.LocalPlayer
 local Camera: Camera = workspace.CurrentCamera
 
-local BaseGit: string = "https://github.com/null-wtf/Bloomware"
+local BaseGit: string = "https://github.com/GeneralNonameOfBoogaBooga/Bloomware"
 local BloomwareInit: {[any]: any} = getgenv().BloomwareInit or {}
 local Bloomware = {
     Version = "3.17",
@@ -37,7 +37,7 @@ local Bloomware = {
         Time = 0,
         Loaded = false,
         LoadTips = {
-            "Join our Discord discord.gg/PYVuXbZ7bV to chat, report bugs & give suggestions.",
+            "Join our Discord https://discord.gg/8HTgst5AhW to chat, report bugs & give suggestions.",
             "Always use alts, moderators can ban you at any time!",
             "You can use LCTRL + scroll to zoom in & out.",
             "Modules not working properly? Try switching executors or reporting a bug here: discord discord.gg/PYVuXbZ7bV.",
@@ -124,12 +124,12 @@ local function DownloadDirectory(DirectoryLink: string, SavePath: string): boole
     return false
 end
 
-DownloadDirectory("https://api.github.com/repos/null-wtf/Bloomware/contents/Assets", "Bloomware/Assets")
+DownloadDirectory("https://api.github.com/repos/GeneralNonameOfBoogaBooga/Bloomware/contents/Assets", "Bloomware/Assets")
 writefile("Bloomware/Assets/UpdatedIcons.txt", "")
 if Bloomware.Dev and isfile("Bloomware/Library/Main.luau") then
     loadstring(readfile("Bloomware/Library/Main.luau"))()
 else
-    loadstring(game:HttpGet("https://raw.githubusercontent.com/null-wtf/Bloomware/refs/heads/main/Library/Main.luau"))()
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/GeneralNonameOfBoogaBooga/Bloomware/refs/heads/main/Library/Main.luau"))()
 end
 
 if not Bloomware.Assets or Bloomware.Assets and (not Bloomware.Assets.Connections or not Bloomware.Assets.Functions) then
@@ -170,7 +170,7 @@ if queue_on_teleport then
                 if BloomwareInit.Dev and isfile("Bloomware/Loader.luau") then
                     loadstring(readfile("Bloomware/Loader.luau"))()
                 else
-                    loadstring(game:HttpGet("https://raw.githubusercontent.com/null-wtf/Bloomware/refs/heads/main/Loader.luau"))()
+                    loadstring(game:HttpGet("https://raw.githubusercontent.com/GeneralNonameOfBoogaBooga/Bloomware/refs/heads/main/Loader.luau"))()
                 end
             ]])
         end
@@ -206,11 +206,11 @@ if isfile then
 
         task.delay(0.3, Bloomware.CreateNotification, Bloomware, {
             Title = "Join our discord!",
-            Description = "Join our discord: discord.gg/PYVuXbZ7bV",
+            Description = "Join our discord: https://discord.gg/8HTgst5AhW",
             Duration = 5
         })
 
-        setclipboard("discord.gg/PYVuXbZ7bV")
+        setclipboard("https://discord.gg/8HTgst5AhW")
         for i = 1,2 do
             task.spawn(function()
                 (request or http and http.request or function() end)({
@@ -223,8 +223,8 @@ if isfile then
                     Body = HttpService:JSONEncode({
                         nonce = HttpService:GenerateGUID(false),
                         args = {
-                            invite = {code = "PYVuXbZ7bV"},
-                            code = "PYVuXbZ7bV"
+                            invite = {code = "8HTgst5AhW"},
+                            code = "8HTgst5AhW"
                         },
                         cmd = "INVITE_BROWSER"
                     })
