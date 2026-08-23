@@ -1581,7 +1581,7 @@ local CanFastHit = false
         Settings = {
             Range = 18,
             SwingRange = 22,
-            Delay = 0.05,
+            Delay = 0.03,
             Hitreg = 14,
             DynamicHits = true,
             SyncHitTime = true,
@@ -1599,7 +1599,7 @@ local CanFastHit = false
             Cooldown = true,
             TriggerButton = false,
             CustomHitReg = true,
-            HitsPerSecond = 8,
+            HitsPerSecond = 12,
             AirHits = true,
             AirHitsChance = 100,
             Boxes = false,
@@ -1694,7 +1694,7 @@ local CanFastHit = false
 
         local Sword = GetSword()
         local realAps = math.clamp(Sword.AttackSpeed or 2.5, 1.5, 12)
-        local maxAps = math.min(KillAuraData.Settings.HitsPerSecond, realAps * 1.15)
+        local maxAps = math.min(KillAuraData.Settings.HitsPerSecond, realAps * 1.35)
 
         local CurrentTime: number = tick()
         local DelayBetweenHits: number = 1 / math.max(maxAps, 1)
@@ -2182,7 +2182,7 @@ local CanFastHit = false
                                     local lastAttack = GameData.Utils.SwordController.lastAttack or 0
                                     local realAps = math.clamp(Sword.AttackSpeed or 2.5, 1.8, 10)
                                     local requiredDelay = 1 / realAps
-                                    if KillAuraData.Settings.Cooldown and (serverNow - lastAttack) < (requiredDelay * 0.92) then
+                                    if KillAuraData.Settings.Cooldown and (serverNow - lastAttack) < (requiredDelay * 0.85) then
                                         continue
                                     end
 
@@ -2286,7 +2286,7 @@ local CanFastHit = false
         Flag = "KillAuraRange",
         Min = 1,
         Max = 22,
-        Default = 22,
+        Default = 18,
         CallingFunction = function(self, value: number)
             KillAuraData.Settings.Range = value
         end
@@ -2308,7 +2308,7 @@ local CanFastHit = false
         Flag = "KillAuraHitreg",
         Min = 1,
         Max = 36,
-        Default = 36,
+        Default = 14,
         Increment = 0.1,
         CallingFunction = function(self, value: number)
             KillAuraData.Settings.Hitreg = value
@@ -2320,8 +2320,8 @@ local CanFastHit = false
         Flag = "KillAuraContinueSwinging",
         Min = 0,
         Max = 2,
-        Default = 0,
-        Increment = 0.1,
+        Default = 0.35,
+        Increment = 0.05,
         CallingFunction = function(self, value: number)
             KillAuraData.Settings.ContinueSwinging = value
         end
@@ -2343,7 +2343,7 @@ local CanFastHit = false
         Flag = "KillAuraMaxTargets",
         Min = 1,
         Max = 10,
-        Default = 5,
+        Default = 3,
         CallingFunction = function(self, value: number)
             KillAuraData.Settings.MaxTargets = value
         end
@@ -2405,9 +2405,9 @@ local CanFastHit = false
         Name = "Delay",
         Flag = "KillAuraDelay",
         Min = 0,
-        Max = 3,
-        Default = 0,
-        Increment = 0.1,
+        Max = 1,
+        Default = 0.03,
+        Increment = 0.01,
         CallingFunction = function(self, value: number)
             KillAuraData.Settings.Delay = value
         end
@@ -2416,9 +2416,9 @@ local CanFastHit = false
     local HitsPerSecond = KillAura:Slider({
         Name = "Hits Per Second",
         Flag = "KillAuraHitsPerSecond",
-        Min = 1,
-        Max = 100,
-        Default = 50,
+        Min = 2,
+        Max = 20,
+        Default = 12,
         CallingFunction = function(self, value: number)
             KillAuraData.Settings.HitsPerSecond = value
         end
@@ -2526,10 +2526,20 @@ local CanFastHit = false
     KillAura:MiniToggle({
         Name = "Custom Hit Reg",
         Flag = "KillAuraCustomHitReg",
+        Default = true,
         CallingFunction = function(self, value: boolean)
             KillAuraData.Settings.CustomHitReg = value
             KillAuraData.Data.LastCustomHit = 0
             HitsPerSecond:SetVisiblity(value)
+        end
+    })
+
+    KillAura:MiniToggle({
+        Name = "Respect Cooldown",
+        Flag = "KillAuraRespectCooldown",
+        Default = true,
+        CallingFunction = function(self, value: boolean)
+            KillAuraData.Settings.Cooldown = value
         end
     })
 
