@@ -1579,27 +1579,27 @@ local CanFastHit = false
 (function()
     local KillAuraData = {
         Settings = {
-            Range = 18,
-            SwingRange = 22,
-            Delay = 0.03,
-            Hitreg = 14,
-            DynamicHits = true,
-            SyncHitTime = true,
-            ContinueSwinging = 0.35,
-            AnimationRestoreTime = 0.4,
+            Range = 20,
+            SwingRange = 25,
+            Delay = 0,
+            Hitreg = 36,
+            DynamicHits = false,
+            SyncHitTime = false,
+            ContinueSwinging = 1,
+            AnimationRestoreTime = 0.5,
             MaxAngle = 360,
-            MaxTargets = 3,
+            MaxTargets = 5,
             AttackMode = "Switch",
-            AutoSwitch = true,
+            AutoSwitch = false,
             NoSwing = false,
             HandCheck = false,
             WallCheck = false,
-            AttackableCheck = true,
+            AttackableCheck = false,
             UseAnimation = false,
-            Cooldown = true,
+            Cooldown = false,
             TriggerButton = false,
-            CustomHitReg = true,
-            HitsPerSecond = 12,
+            CustomHitReg = false,
+            HitsPerSecond = 50,
             AirHits = true,
             AirHitsChance = 100,
             Boxes = false,
@@ -1692,15 +1692,18 @@ local CanFastHit = false
             return true
         end
 
-        local Sword = GetSword()
-        local realAps = math.clamp(Sword.AttackSpeed or 2.5, 1.5, 12)
-        local maxAps = math.min(KillAuraData.Settings.HitsPerSecond, realAps * 1.35)
+        if KillAuraData.Settings.HitsPerSecond >= 36 then
+            return true
+        end
 
         local CurrentTime: number = tick()
-        local DelayBetweenHits: number = 1 / math.max(maxAps, 1)
+        local DelayBetweenHits: number = 10 / math.max(KillAuraData.Settings.HitsPerSecond, 1)
 
         if CurrentTime - KillAuraData.Data.LastCustomHit >= DelayBetweenHits then
-            KillAuraData.Data.LastCustomHit = CurrentTime
+            KillAuraData.Data.LastCustomHit += DelayBetweenHits
+            if CurrentTime - KillAuraData.Data.LastCustomHit > DelayBetweenHits then
+                KillAuraData.Data.LastCustomHit = CurrentTime
+            end
             return true
         end
 
@@ -2102,7 +2105,7 @@ local CanFastHit = false
                     end)
                 end)()
 
-                self:Connection(RunService.Heartbeat:Connect(function()
+                self:Connection(RunService.PreRender:Connect(function()
                     if KillAuraData.Settings.Delay > (os.clock() - KillAuraData.Data.LastHit) then
                         return
                     end
@@ -2176,15 +2179,7 @@ local CanFastHit = false
                                     local Distance: number = (TargetPos - SelfPos).Magnitude
                                     local Hitreg: number = GetHitreg(Distance)
                                     local HitPosition: Vector3 = SelfPos + Direction * math.max(Distance - Hitreg, 0)
-
-                                    -- hard server-side cooldown respect
-                                    local serverNow = workspace:GetServerTimeNow()
-                                    local lastAttack = GameData.Utils.SwordController.lastAttack or 0
-                                    local realAps = math.clamp(Sword.AttackSpeed or 2.5, 1.8, 10)
-                                    local requiredDelay = 1 / realAps
-                                    if KillAuraData.Settings.Cooldown and (serverNow - lastAttack) < (requiredDelay * 0.85) then
-                                        continue
-                                    end
+                                    local SyncDelay: number = KillAuraData.Settings.SyncHitTime and math.max(36 - Hitreg, 0) / 36 or 0
 
                                     if tick() < KillAuraData.Data.LastPacket then
                                         continue
@@ -2194,11 +2189,10 @@ local CanFastHit = false
                                         continue
                                     end
 
-                                    local SyncDelayFixed = KillAuraData.Settings.SyncHitTime and math.max(0.03, requiredDelay * 0.15) or 0
-                                    KillAuraData.Data.LastPacket = tick() + SyncDelayFixed
+                                    KillAuraData.Data.LastPacket = tick() + SyncDelay
                                     KillAuraData.Data.LastHit = os.clock()
                                     KillAuraData.Data.LastSwing = tick()
-                                    GameData.Utils.SwordController.lastAttack = serverNow
+                                    GameData.Utils.SwordController.lastAttack = workspace:GetServerTimeNow()
 
                                     GameData.Utils.Remotes:Get("SwordHit"):SendToServer({
                                         entityInstance = Target.Entity,
@@ -2286,7 +2280,7 @@ local CanFastHit = false
         Flag = "KillAuraRange",
         Min = 1,
         Max = 22,
-        Default = 18,
+        Default = 22,
         CallingFunction = function(self, value: number)
             KillAuraData.Settings.Range = value
         end
@@ -2308,7 +2302,7 @@ local CanFastHit = false
         Flag = "KillAuraHitreg",
         Min = 1,
         Max = 36,
-        Default = 14,
+        Default = 36,
         Increment = 0.1,
         CallingFunction = function(self, value: number)
             KillAuraData.Settings.Hitreg = value
@@ -2320,8 +2314,8 @@ local CanFastHit = false
         Flag = "KillAuraContinueSwinging",
         Min = 0,
         Max = 2,
-        Default = 0.35,
-        Increment = 0.05,
+        Default = 0,
+        Increment = 0.1,
         CallingFunction = function(self, value: number)
             KillAuraData.Settings.ContinueSwinging = value
         end
@@ -2343,7 +2337,7 @@ local CanFastHit = false
         Flag = "KillAuraMaxTargets",
         Min = 1,
         Max = 10,
-        Default = 3,
+        Default = 5,
         CallingFunction = function(self, value: number)
             KillAuraData.Settings.MaxTargets = value
         end
@@ -2405,9 +2399,9 @@ local CanFastHit = false
         Name = "Delay",
         Flag = "KillAuraDelay",
         Min = 0,
-        Max = 1,
-        Default = 0.03,
-        Increment = 0.01,
+        Max = 3,
+        Default = 0,
+        Increment = 0.1,
         CallingFunction = function(self, value: number)
             KillAuraData.Settings.Delay = value
         end
@@ -2416,9 +2410,9 @@ local CanFastHit = false
     local HitsPerSecond = KillAura:Slider({
         Name = "Hits Per Second",
         Flag = "KillAuraHitsPerSecond",
-        Min = 2,
-        Max = 20,
-        Default = 12,
+        Min = 1,
+        Max = 100,
+        Default = 50,
         CallingFunction = function(self, value: number)
             KillAuraData.Settings.HitsPerSecond = value
         end
@@ -2526,20 +2520,10 @@ local CanFastHit = false
     KillAura:MiniToggle({
         Name = "Custom Hit Reg",
         Flag = "KillAuraCustomHitReg",
-        Default = true,
         CallingFunction = function(self, value: boolean)
             KillAuraData.Settings.CustomHitReg = value
             KillAuraData.Data.LastCustomHit = 0
             HitsPerSecond:SetVisiblity(value)
-        end
-    })
-
-    KillAura:MiniToggle({
-        Name = "Respect Cooldown",
-        Flag = "KillAuraRespectCooldown",
-        Default = true,
-        CallingFunction = function(self, value: boolean)
-            KillAuraData.Settings.Cooldown = value
         end
     })
 
@@ -7303,7 +7287,7 @@ end)();
             TargetPart = "HumanoidRootPart",
             AutoClick = true,
             PerfectHits = true,
-            ClickDelay = 0.25,
+            ClickDelay = 0.4,
             Targets = {
                 Players = true,
                 Npcs = true
@@ -7351,11 +7335,8 @@ end)();
 
                             if SilentAuraData.Settings.AutoClick then
                                 local Now = os.clock()
-                                local Sword = GetSword()
-                                local realAps = math.clamp(Sword.AttackSpeed or 2.5, 1.8, 8)
-                                local minDelay = 1 / realAps
-                                local useDelay = SilentAuraData.Settings.PerfectHits and math.max(minDelay, 1 / 12) or math.max(minDelay, SilentAuraData.Settings.ClickDelay)
-                                if Now - SilentAuraData.Data.LastClick >= useDelay then
+                                if Now - SilentAuraData.Data.LastClick >= (SilentAuraData.Settings.PerfectHits and 1 / 16 * math.random(2, 5) or SilentAuraData.Settings.ClickDelay) then
+                                    local Sword = GetSword()
                                     if Sword.Item then
                                         GameData.Utils.SwordController:swingSwordAtMouse()
                                         SilentAuraData.Data.LastClick = Now
