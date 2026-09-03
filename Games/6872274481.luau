@@ -1579,28 +1579,27 @@ local CanFastHit = false
 (function()
     local KillAuraData = {
         Settings = {
-            Range = 18,
-            SwingRange = 22,
+            Range = 20,
+            SwingRange = 25,
             Delay = 0,
-            Hitreg = 14,
-            DynamicHits = true,
-            SyncHitTime = true,
-            ContinueSwinging = 0.35,
-            AnimationRestoreTime = 0.4,
+            Hitreg = 36,
+            DynamicHits = false,
+            SyncHitTime = false,
+            ContinueSwinging = 1,
+            AnimationRestoreTime = 0.5,
             MaxAngle = 360,
-            MaxTargets = 3,
-            AttackMode = "Closest",
-            AutoSwitch = true,
+            MaxTargets = 5,
+            AttackMode = "Switch",
+            AutoSwitch = false,
             NoSwing = false,
-            HandCheck = true,
+            HandCheck = false,
             WallCheck = false,
-            AttackableCheck = true,
+            AttackableCheck = false,
             UseAnimation = false,
-            Cooldown = true,
+            Cooldown = false,
             TriggerButton = false,
             CustomHitReg = false,
-            HitsPerSecond = 8,
-            SafeMode = true,
+            HitsPerSecond = 50,
             AirHits = true,
             AirHitsChance = 100,
             Boxes = false,
@@ -1609,15 +1608,15 @@ local CanFastHit = false
             AutoJump = false,
             FastHits = false,
             FastHitsLegit = false,
-            FastHitsFireRate = 0.12,
+            FastHitsFireRate = 0.06,
             FastHitsProjectiles = {arrow = true, snowball = true},
             SelectedAnimation = "Bloomware",
             TargetMode = "Distance",
             BoxColor = Color3.fromRGB(255, 0, 0),
             ParticleColor = Color3.fromRGB(255, 0, 0),
             BoxTransparency = 0.5,
-            ParticleRate = 30,
-            ParticleLifeTime = 1.5,
+            ParticleRate = 40,
+            ParticleLifeTime = 2,
             Targets = {
                 Players = true,
                 Npcs = true
@@ -1642,8 +1641,6 @@ local CanFastHit = false
             FastHitDelays = {},
             SwitchIndex = 1,
             SwitchAt = 0,
-            ConsecutiveHits = 0,
-            LastBurstReset = 0,
             Effects = {
                 Boxes = {},
                 Particles = {}
@@ -1657,158 +1654,456 @@ local CanFastHit = false
             Smooth = {
                 {Position = CFrame.new(-0.01, -0.3, -1.01), Angle = CFrame.Angles(math.rad(-35), math.rad(90), math.rad(-90)), Duration = 0.45},
                 {Position = CFrame.new(-0.01, -0.3, -1.01), Angle = CFrame.Angles(math.rad(-35), math.rad(70), math.rad(-90)), Duration = 0.45},
-                {Position = CFrame.new(-0.01, -0.3, 0.4), Angle = CFrame.Angles(math.rad(-35), math.rad(70), math.rad(-90)), Duration = 0.32}
+                {Position = CFrame.new(-0.01, -0.3, 0.4), Angle = CFrame.Angles(math.rad(-35), math.rad(70), math.rad(-90)), Duration = 0.32},
+            },
+            Funny = {
+                {Position = CFrame.new(0.8, 10.7, 3.6), Angle = CFrame.Angles(math.rad(-16), math.rad(60), math.rad(-80)), Duration = 0.1},
+                {Position = CFrame.new(5.7, -1.7, 5.6), Angle = CFrame.Angles(math.rad(-16), math.rad(60), math.rad(-80)), Duration = 0.15},
+                {Position = CFrame.new(2.95, -5.06, -6.25), Angle = CFrame.Angles(math.rad(-180), math.rad(60), math.rad(-80)), Duration = 0.15},
+            },
+            Stand = {
+                {Position = CFrame.new(0.7, -0.7, 0.6), Angle = CFrame.Angles(math.rad(-30), math.rad(50), math.rad(-90)), Duration = 0.1}
+            },
+            Air = {
+                {Position = CFrame.new(1.2, -1.5, -1), Angle = CFrame.Angles(math.rad(305), math.rad(55), math.rad(140)), Duration = 0.2},
+                {Position = CFrame.new(1.2, -1.5, -1.2), Angle = CFrame.Angles(math.rad(200), math.rad(55), math.rad(230)), Duration = 0.15},
+            },
+            Hit = {
+                {Position = CFrame.new(0, 0, -0.7), Angle = CFrame.Angles(math.rad(-60), math.rad(50), math.rad(-60)), Duration = 0.12},
+                {Position = CFrame.new(0, -0.35, -0.7), Angle = CFrame.Angles(math.rad(-150), math.rad(60), math.rad(15)), Duration = 0.2},
+            },
+            Rise = {
+                {Position = CFrame.new(1, 0, 0), Angle = CFrame.Angles(math.rad(-40), math.rad(40), math.rad(-80)), Duration = 0.15},
+                {Position = CFrame.new(1, 0, -0.4), Angle = CFrame.Angles(math.rad(-80), math.rad(40), math.rad(-70)), Duration = 0.17},
+            },
+            Moon = {
+                {Position = CFrame.new(0.85, -0.8, 0.6), Angle = CFrame.Angles(math.rad(-40), math.rad(70), math.rad(-90)), Duration = 0.15},
+                {Position = CFrame.new(0.5, -0.6, 0.6), Angle = CFrame.Angles(math.rad(-50), math.rad(50), math.rad(-100)), Duration = 0.12},
+            },
+            Lunar = {
+                {Position = CFrame.new(0.3, 0, -1.5), Angle = CFrame.Angles(math.rad(120), math.rad(120), math.rad(140)), Duration = 0.2},
+                {Position = CFrame.new(0, -0.3, -1.7), Angle = CFrame.Angles(math.rad(30), math.rad(120), math.rad(190)), Duration = 0.2},
             }
         }
     }
-
-    local function GetSwordAttackInterval(): number
-        local Sword = GetSword()
-        if Sword and Sword.AttackSpeed and Sword.AttackSpeed > 0 then
-            return math.max(1 / Sword.AttackSpeed, 0.28) * 0.92
-        end
-        return 0.35
-    end
 
     local function CanHitWithCustomReg(): boolean
         if not KillAuraData.Settings.CustomHitReg then
             return true
         end
-        local maxHps = math.clamp(KillAuraData.Settings.HitsPerSecond, 1, 12)
-        local DelayBetweenHits = 1 / maxHps
-        local CurrentTime = tick()
-        if CurrentTime - KillAuraData.Data.LastCustomHit >= DelayBetweenHits then
-            KillAuraData.Data.LastCustomHit = CurrentTime
+
+        if KillAuraData.Settings.HitsPerSecond >= 36 then
             return true
         end
+
+        local CurrentTime: number = tick()
+        local DelayBetweenHits: number = 10 / math.max(KillAuraData.Settings.HitsPerSecond, 1)
+
+        if CurrentTime - KillAuraData.Data.LastCustomHit >= DelayBetweenHits then
+            KillAuraData.Data.LastCustomHit += DelayBetweenHits
+            if CurrentTime - KillAuraData.Data.LastCustomHit > DelayBetweenHits then
+                KillAuraData.Data.LastCustomHit = CurrentTime
+            end
+            return true
+        end
+
         return false
     end
 
-    local function IsSafeToSend(): boolean
-        local now = tick()
-        if now - KillAuraData.Data.LastBurstReset > 1.2 then
-            KillAuraData.Data.ConsecutiveHits = 0
-            KillAuraData.Data.LastBurstReset = now
+    local function UpdateFastHitProjectiles(value: string)
+        table.clear(KillAuraData.Settings.FastHitsProjectiles)
+
+        for _, Name in value:split(",") do
+            Name = Name:lower():gsub("^%s+", ""):gsub("%s+$", "")
+            if Name ~= "" then
+                KillAuraData.Settings.FastHitsProjectiles[Name] = true
+            end
         end
-        if KillAuraData.Data.ConsecutiveHits >= 6 then
+    end
+
+    local function GetFastHitAmmo(source)
+        if not source.ammoItemTypes then return nil end
+
+        local Inventory = GetInventory()
+        local Items = Inventory and Inventory.items or {}
+        for _, AmmoType in source.ammoItemTypes do
+            for _, Item in Items do
+                if Item.itemType == AmmoType then
+                    return AmmoType
+                end
+            end
+        end
+
+        return nil
+    end
+
+    local function GetFastHitProjectiles()
+        local Projectiles = {}
+        local Inventory = GetInventory()
+        local Items = Inventory and Inventory.items or {}
+
+        for _, Item in Items do
+            local Meta = GameData.Utils.ItemMeta[Item.itemType]
+            local Source = Meta and Meta.projectileSource
+            local Ammo = Source and GetFastHitAmmo(Source)
+
+            if Ammo and KillAuraData.Settings.FastHitsProjectiles[Ammo] then
+                Projectiles[#Projectiles + 1] = {
+                    Item = Item,
+                    Ammo = Ammo,
+                    Projectile = Source.projectileType(Ammo),
+                    Source = Source
+                }
+            end
+        end
+
+        return Projectiles
+    end
+
+    local function TryFastHit(Target, SelfPos: Vector3, HitPosition: Vector3)
+        if not KillAuraData.Settings.FastHits or tick() < KillAuraData.Data.LastFastHit then
+            return
+        end
+
+        local Root = Target.Data.Root or Target.Entity.PrimaryPart
+        local Humanoid = Target.Data.Humanoid or Target.Entity:FindFirstChildOfClass("Humanoid")
+        if not Root or not Humanoid then return end
+
+        local Map = workspace:FindFirstChild("Map")
+        KillAuraData.Data.Params.FilterType = Enum.RaycastFilterType.Include
+        KillAuraData.Data.Params.FilterDescendantsInstances = Map and {Map} or {}
+        if not IsPathClear(Target.Entity, Root, KillAuraData.Data.Params) then
+            return
+        end
+
+        local Projectiles = GetFastHitProjectiles()
+        if #Projectiles == 0 then return end
+
+        KillAuraData.Data.FastHitIndex += 1
+        if not Projectiles[KillAuraData.Data.FastHitIndex] then
+            KillAuraData.Data.FastHitIndex = 1
+        end
+
+        local Obj = Projectiles[KillAuraData.Data.FastHitIndex]
+        if tick() < (KillAuraData.Data.FastHitDelays[Obj.Item.itemType] or 0) then
+            return
+        end
+
+        local ProjMeta = GameData.Utils.ProjMeta[Obj.Projectile]
+        if not ProjMeta then return end
+
+        SwitchItem(Obj.Item.tool, 0)
+        if KillAuraData.Settings.FastHitsLegit then
+            task.wait(0.05)
+        end
+
+        local LaunchVelocity = ProjMeta.launchVelocity or 100
+        local Gravity = ProjMeta.gravitationalAcceleration or 196.2
+        local TargetVelocity = FlatVel(Root)
+        local TargetPos = AimPos(Root, Humanoid)
+        local Calc = SolveShot(SelfPos, LaunchVelocity, Gravity, TargetPos, TargetVelocity)
+        if not Calc then return end
+
+        local Direction = CFrame.lookAt(SelfPos, Calc).LookVector
+        local Id = HttpService:GenerateGUID(true)
+        local ShootPosition = CFrame.new(SelfPos, Calc).Position
+
+        FireProjectileRemote(Obj.Item.tool, Obj.Ammo, Obj.Projectile, ShootPosition, HitPosition, Direction * LaunchVelocity, Id,
+            {
+                drawDurationSeconds = 1,
+                drawDurationSec = 1,
+                shotId = HttpService:GenerateGUID(false)
+            },
+            workspace:GetServerTimeNow() - 0.045
+        )
+
+        KillAuraData.Data.FastHitDelays[Obj.Item.itemType] = tick() + (Obj.Source.fireDelaySec or 0)
+        KillAuraData.Data.LastFastHit = tick() + (LocalPlayer:GetNetworkPing() + KillAuraData.Settings.FastHitsFireRate)
+    end
+
+    local function IsInAir(Entity: Model): boolean
+        local Humanoid: Humanoid? = Entity and Entity:FindFirstChildOfClass("Humanoid")
+        if not Humanoid then
             return false
         end
-        if KillAuraData.Settings.Cooldown then
-            local interval = GetSwordAttackInterval()
-            if now - KillAuraData.Data.LastPacket < interval then
-                return false
-            end
-        end
-        if KillAuraData.Settings.SafeMode then
-            if now - KillAuraData.Data.LastPacket < 0.22 then
-                return false
-            end
-        end
-        return true
-    end
 
-    local function CalculateAuraPosition(SelfPos: Vector3, TargetRoot: BasePart): Vector3
-        local vel = TargetRoot.AssemblyLinearVelocity
-        return Vector3.new(vel.X, 0, vel.Z) * 0.08
-    end
-
-    local function GetHitreg(Distance: number): number
-        if not KillAuraData.Settings.DynamicHits then
-            return KillAuraData.Settings.Hitreg
-        end
-        local SafeRange = 14
-        local Window = KillAuraData.Settings.Range - SafeRange
-        if Window <= 0 then return KillAuraData.Settings.Hitreg end
-        local t = math.clamp((Distance - SafeRange) / Window, 0, 1)
-        return math.floor(KillAuraData.Settings.Hitreg * (1 - t * 0.55))
+        local State = Humanoid:GetState()
+        return Humanoid.FloorMaterial == Enum.Material.Air or State == Enum.HumanoidStateType.Jumping or State == Enum.HumanoidStateType.Freefall or State == Enum.HumanoidStateType.Physics
     end
 
     local function CanAirHit(Entity: Model): boolean
-        if not KillAuraData.Settings.AirHits then return true end
-        local Root = Entity.PrimaryPart or Entity:FindFirstChild("HumanoidRootPart")
-        if not Root then return false end
-        local Hum = Entity:FindFirstChildOfClass("Humanoid")
-        if not Hum then return true end
-        if Hum.FloorMaterial ~= Enum.Material.Air then return true end
+        if not KillAuraData.Settings.AirHits or not IsInAir(Entity) then
+            return true
+        end
+
         return math.random(1, 100) <= KillAuraData.Settings.AirHitsChance
     end
 
-    local function PlayAnim(module)
-        if KillAuraData.Settings.NoSwing then return end
-        if not KillAuraData.Settings.UseAnimation then
-            pcall(function()
-                GameData.Utils.SwordController:playSwordEffect(LocalPlayer.Character)
-            end)
-            return
-        end
-        if KillAuraData.Data.AnimationPlaying then return end
-        local ViewModel = GetViewModel()
-        if not ViewModel then return end
-        local RightHand = ViewModel:FindFirstChild("RightHand")
-        if not RightHand then return end
-        local RightWrist = RightHand:FindFirstChild("RightWrist")
-        if not RightWrist then return end
-        local Selected = KillAuraData.Animations[KillAuraData.Settings.SelectedAnimation]
-        if not Selected then return end
-        KillAuraData.Data.AnimationPlaying = true
-        if not KillAuraData.Data.OriginalHandPos then
-            KillAuraData.Data.OriginalHandPos = RightWrist.C0
-        end
-        task.spawn(function()
-            for _, Key in Selected do
-                if not module.Enabled then break end
-                local Goal = Key.Position * Key.Angle
-                local Tween = TweenService:Create(RightWrist, TweenInfo.new(Key.Duration, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {C0 = Goal})
-                Tween:Play()
-                Tween.Completed:Wait()
+    local function GetHitreg(Distance: number): number
+        local Hitreg: number = KillAuraData.Settings.Hitreg + 1
+
+        if KillAuraData.Settings.DynamicHits then
+            local Limit: number = GameData.Utils.CombatConstant.RAYCAST_SWORD_CHARACTER_DISTANCE or 14.4
+            local SafeRange: number = Hitreg < Limit and Hitreg or Limit
+            local Window: number = KillAuraData.Settings.Range - SafeRange
+
+            if Window < 1 then
+                Window = 1
             end
-            if KillAuraData.Data.OriginalHandPos then
-                TweenService:Create(RightWrist, TweenInfo.new(KillAuraData.Settings.AnimationRestoreTime), {C0 = KillAuraData.Data.OriginalHandPos}):Play()
+
+            local Scale: number = (Distance - SafeRange) / Window
+
+            if Scale < 0 then
+                Scale = 0
+            elseif Scale > 1 then
+                Scale = 1
             end
-            KillAuraData.Data.AnimationPlaying = false
-        end)
+
+            Hitreg = Hitreg + (SafeRange - Hitreg) * Scale
+        end
+
+        return Hitreg
+    end
+
+    local function CalculateAuraPosition(SelfPos: Vector3, TargetRoot: BasePart): Vector3
+        local Ping: number = LocalPlayer:GetNetworkPing()
+        local Velocity: Vector3 = TargetRoot.AssemblyLinearVelocity
+
+        local Scale: number = Ping <= 0.03 and 0.03 or (Ping >= 0.4 and 0.4 or Ping)
+
+        return Velocity * Scale
     end
 
     local function ResetAuraVisuals()
+        KillAuraData.Data.AnimationPlaying = false
+
         for _, Group in KillAuraData.Data.Effects do
-            for _, Obj in Group do
-                if Obj and Obj.Parent then Obj:Destroy() end
+            for _, Object in Group do
+                Object:Destroy()
             end
+
             table.clear(Group)
+        end
+
+        if KillAuraData.Data.OriginalHandPos then
+            local ViewModel: Model = GetViewModel()
+            local RightHand: MeshPart = ViewModel and ViewModel:FindFirstChild("RightHand")
+            if ViewModel and RightHand then
+                local RightWrist: Motor6D = RightHand:FindFirstChild("RightWrist")
+                if RightWrist then
+                    TweenService:Create(RightWrist, TweenInfo.new(KillAuraData.Settings.AnimationRestoreTime), {C0 = KillAuraData.Data.OriginalHandPos}):Play()
+                end
+            end
         end
     end
 
     local function RenderAuraTarget(Target)
-        if not Target or not Target.Entity then return end
         if KillAuraData.Settings.Boxes then
-            local Box = KillAuraData.Data.Effects.Boxes[Target.Entity]
-            if not Box or not Box.Parent then
-                Box = Instance.new("Part")
-                Box.Size = Vector3.new(4, 6, 4)
-                Box.Anchored = true
-                Box.CanCollide = false
-                Box.CanQuery = false
-                Box.Material = Enum.Material.ForceField
-                Box.Parent = workspace.CurrentCamera
-                KillAuraData.Data.Effects.Boxes[Target.Entity] = Box
+            coroutine.wrap(function()
+                local Box: Part = KillAuraData.Data.Effects.Boxes[Target.Entity]
+                if not Box then
+                    Box = Instance.new("Part", Target.Entity)
+                    Box.Size = Vector3.new(5, 6, 5)
+                    Box.Material = Enum.Material.Air
+                    Box.CanCollide = false
+                    Box.Anchored = true
+
+                    KillAuraData.Data.Effects.Boxes[Target.Entity] = Box
+                end
+
+                Box.CFrame = Target.Entity.PrimaryPart.CFrame
+                Box.Transparency = KillAuraData.Settings.BoxTransparency
+                Box.Color = KillAuraData.Settings.BoxColor
+            end)()
+        end
+
+        if KillAuraData.Settings.Particles then
+            coroutine.wrap(function()
+                local Emitter: ParticleEmitter = KillAuraData.Data.Effects.Particles[Target.Entity]
+                if not Emitter then
+                    Emitter = Instance.new("ParticleEmitter", Target.Entity.PrimaryPart)
+                    Emitter.EmissionDirection = Enum.NormalId.Front
+                    Emitter.SpreadAngle = Vector2.new(1, 1)
+                    Emitter.Transparency = NumberSequence.new({NumberSequenceKeypoint.new(0, 0), NumberSequenceKeypoint.new(1, 2.5)})
+
+                    KillAuraData.Data.Effects.Particles[Target.Entity] = Emitter
+                end
+
+                Emitter.Lifetime = NumberRange.new(KillAuraData.Settings.ParticleLifeTime, KillAuraData.Settings.ParticleLifeTime)
+                Emitter.Rate = KillAuraData.Settings.ParticleRate
+                Emitter.Color = ColorSequence.new(KillAuraData.Settings.ParticleColor)
+            end)()
+        end
+    end
+
+    local LastSwing: number = 0
+    local function PlayAnim(Module)
+        if not KillAuraData.Settings.NoSwing then
+            if os.clock() - LastSwing >= 0.22 then
+                LastSwing = os.clock()
+                GameData.Utils.Animation:playAnimation(LocalPlayer, GameData.Utils.ProdAnimations[GameData.Utils.AnimationType.SWORD_SWING])
             end
-            Box.Transparency = KillAuraData.Settings.BoxTransparency
-            Box.Color = KillAuraData.Settings.BoxColor
-            local Root = Target.Data.Root or Target.Entity.PrimaryPart
-            if Root then
-                Box.CFrame = Root.CFrame
+        end
+
+        if KillAuraData.Settings.UseAnimation then
+            coroutine.wrap(function()
+                local ViewModel: Model = GetViewModel()
+                local RightHand: MeshPart = ViewModel and ViewModel:FindFirstChild("RightHand")
+                local SelectedAnimation: {[string]: {Position: CFrame, Angle: CFrame, Duration: number}} = KillAuraData.Animations[KillAuraData.Settings.SelectedAnimation]
+
+                if ViewModel and RightHand and SelectedAnimation and not KillAuraData.Data.AnimationPlaying then
+                    local RightWrist: Motor6D = RightHand:FindFirstChild("RightWrist")
+                    if RightWrist then
+                        if not KillAuraData.Data.OriginalHandPos then
+                            KillAuraData.Data.OriginalHandPos = RightWrist.C0
+                        end
+
+                        KillAuraData.Data.AnimationPlaying = true
+                        for _, Step in SelectedAnimation do
+                            local Tween: Tween = TweenService:Create(RightWrist, TweenInfo.new(Step.Duration), {C0 = KillAuraData.Data.OriginalHandPos * Step.Position * Step.Angle})
+                            Tween:Play()
+                            Tween.Completed:Wait()
+
+                            if not Module.Enabled or not KillAuraData.Settings.UseAnimation then
+                                break
+                            end
+                        end
+                    end
+
+                    KillAuraData.Data.AnimationPlaying = false
+                end
+            end)()
+        elseif not KillAuraData.Settings.NoSwing then
+            if os.clock() - LastSwing >= 0.22 then
+                LastSwing = os.clock()
+                GameData.Utils.ViewmodelController:playAnimation(GameData.Utils.AnimationType.FP_SWING_SWORD)
             end
         end
     end
 
+    local function GetAuraTargets(MaxRange: number)
+        local Found = {}
+        local Character = LocalPlayer.Character
+        local Root: BasePart? = Character and Character.PrimaryPart
+        if not Root then
+            return Found
+        end
+
+        local Params
+        if KillAuraData.Settings.WallCheck then
+            Params = RaycastParams.new()
+            Params.IgnoreWater = true
+            Params.FilterType = Enum.RaycastFilterType.Exclude
+            Params.FilterDescendantsInstances = CollectionService:GetTagged("entity")
+        end
+
+        for _, Data in GetEntities() do
+            if Data.Entity == Character then
+                continue
+            end
+
+            if not Bloomware:IsAlive(Data.Entity, true) then
+                continue
+            end
+
+            if Data.Entity:GetAttribute("Team") == Character:GetAttribute("Team") then
+                continue
+            end
+
+            if (Data.Player and not KillAuraData.Settings.Targets.Players) or (not Data.Player and not KillAuraData.Settings.Targets.Npcs) then
+                continue
+            end
+
+            if not Data.Root then
+                continue
+            end
+
+            local Distance: number = Bloomware:GetDistanceFrom(Root.Position, Data.Root.Position)
+            if Distance > MaxRange then
+                continue
+            end
+
+            local Angle: number = GetAngle(Root.CFrame, Data.Root.Position)
+            if Angle > (KillAuraData.Settings.MaxAngle / 2 * math.pi / 180) then
+                continue
+            end
+
+            if Params and not IsPathClear(Data.Entity, Data.Root, Params) then
+                continue
+            end
+
+            Found[#Found + 1] = {
+                Entity = Data.Entity,
+                Distance = Distance,
+                Data = Data,
+                Angle = Angle,
+                Priority = (KillAuraData.Settings.Priority == "Players" and Data.Player) and 0 or ((KillAuraData.Settings.Priority == "NPCs" and not Data.Player) and 0 or 1)
+            }
+        end
+
+        table.sort(Found, function(A, B)
+            if A.Priority ~= B.Priority then
+                return A.Priority < B.Priority
+            end
+
+            if KillAuraData.Settings.TargetMode == "Lowest Health" then
+                return (A.Data.Health or math.huge) < (B.Data.Health or math.huge)
+            elseif KillAuraData.Settings.TargetMode == "Highest Health" then
+                return (A.Data.Health or 0) > (B.Data.Health or 0)
+            elseif KillAuraData.Settings.TargetMode == "Angle" then
+                return A.Angle < B.Angle
+            end
+
+            return A.Distance < B.Distance
+        end)
+
+        if KillAuraData.Settings.AttackMode == "Switch" and #Found > 1 then
+            if tick() > KillAuraData.Data.SwitchAt then
+                KillAuraData.Data.SwitchAt = tick() + 0.7
+                KillAuraData.Data.SwitchIndex += 1
+            end
+
+            if not Found[KillAuraData.Data.SwitchIndex] then
+                KillAuraData.Data.SwitchIndex = 1
+            end
+
+            return {Found[KillAuraData.Data.SwitchIndex]}
+        end
+
+        local Limit: number = KillAuraData.Settings.AttackMode == "Multi" and KillAuraData.Settings.MaxTargets or 1
+        while #Found > Limit do
+            table.remove(Found)
+        end
+
+        return Found
+    end
+
     local KillAura = Windows.Combat:CreateModule({
-        Name = "KillAura",
+        Name = "Kill Aura",
         Flag = "KillAura",
         CallingFunction = function(self, enabled: boolean)
             if enabled then
-                KillAuraData.Data.LastPacket = 0
-                KillAuraData.Data.ConsecutiveHits = 0
-                KillAuraData.Data.LastBurstReset = tick()
+                coroutine.wrap(function()
+                    repeat task.wait() until GameData.Utils.ViewmodelController and GameData.Utils.ViewmodelController.playAnimation
+                    task.delay(0.1, function()
+                        if not KillAuraData.Data.OldPlayAnimationViewModel then
+                            KillAuraData.Data.OldPlayAnimationViewModel = GameData.Utils.ViewmodelController.playAnimation
+                        end
+                        
+                        GameData.Utils.ViewmodelController.playAnimation = function(self, animation: number, ...)
+                            if KillAuraData.Data.AnimationPlaying then
+                                local Animation: string = GameData.Utils.AnimationType[animation]
+                                if Animation and typeof(Animation) == "string" then
+                                    if Animation:lower():find("swing_sword") then
+                                        return
+                                    end
+                                end
+                            end
+
+                            return KillAuraData.Data.OldPlayAnimationViewModel(self, animation, ...)
+                        end
+                    end)
+                end)()
 
                 self:Connection(RunService.PreRender:Connect(function()
                     if KillAuraData.Settings.Delay > (os.clock() - KillAuraData.Data.LastHit) then
@@ -1816,170 +2111,122 @@ local CanFastHit = false
                     end
 
                     local Sword = GetSword()
-                    if not (Sword.Item and GameData.Utils.Store:getState().Game.matchState == GameData.Utils.MatchStates.RUNNING and Bloomware:IsAlive(LocalPlayer)) then
-                        return
-                    end
-
-                    if KillAuraData.Settings.TriggerButton and not KillAuraData.Data.TriggerHeld then
-                        return
-                    end
-
-                    local Character = LocalPlayer.Character
-                    local Root = Character and Character.PrimaryPart
-                    local Humanoid = Character and Character:FindFirstChildOfClass("Humanoid")
-                    if not Root or not Humanoid then return end
-
-                    local HandItem = GetInventory().hand
-                    if KillAuraData.Settings.HandCheck then
-                        if not HandItem or not HandItem.tool then return end
-                        local Meta = GameData.Utils.ItemMeta[HandItem.itemType]
-                        if not Meta or not Meta.sword then return end
-                    end
-
-                    if KillAuraData.Settings.AttackableCheck then
-                        local StunnedUntil = Character:GetAttribute("StunnedUntilTime") or 0
-                        if StunnedUntil > workspace:GetServerTimeNow() then return end
-                    end
-
-                    if KillAuraData.Settings.AutoSwitch and (not HandItem or HandItem.tool ~= Sword.Item) then
-                        SwitchItem(Sword.Item, 0)
-                    end
-
-                    if KillAuraData.Settings.AutoJump and Humanoid.FloorMaterial ~= Enum.Material.Air and Humanoid.MoveDirection.Magnitude > 0 then
-                        Humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
-                    end
-
-                    local MaxRange = KillAuraData.Settings.InfRange and 999 or KillAuraData.Settings.Range
-                    local Params = nil
-                    if KillAuraData.Settings.WallCheck then
-                        Params = RaycastParams.new()
-                        Params.FilterType = Enum.RaycastFilterType.Exclude
-                        Params.FilterDescendantsInstances = CollectionService:GetTagged("entity")
-                        Params.IgnoreWater = true
-                    end
-
-                    local Found = {}
-                    for _, Data in GetEntities() do
-                        if Data.Entity == Character then continue end
-                        if not Bloomware:IsAlive(Data.Entity, true) then continue end
-                        if Data.Entity:GetAttribute("Team") == Character:GetAttribute("Team") then continue end
-                        if (Data.Player and not KillAuraData.Settings.Targets.Players) or (not Data.Player and not KillAuraData.Settings.Targets.Npcs) then continue end
-                        if not Data.Root then continue end
-
-                        local Distance = Bloomware:GetDistanceFrom(Root.Position, Data.Root.Position)
-                        if Distance > MaxRange then continue end
-
-                        local Angle = GetAngle(Root.CFrame, Data.Root.Position)
-                        if Angle > (KillAuraData.Settings.MaxAngle / 2 * math.pi / 180) then continue end
-
-                        if Params and not IsPathClear(Data.Entity, Data.Root, Params) then continue end
-
-                        Found[#Found + 1] = {
-                            Entity = Data.Entity,
-                            Distance = Distance,
-                            Data = Data,
-                            Angle = Angle,
-                            Priority = (KillAuraData.Settings.Priority == "Players" and Data.Player) and 0 or ((KillAuraData.Settings.Priority == "NPCs" and not Data.Player) and 0 or 1)
-                        }
-                    end
-
-                    table.sort(Found, function(A, B)
-                        if A.Priority ~= B.Priority then return A.Priority < B.Priority end
-                        if KillAuraData.Settings.TargetMode == "Lowest Health" then
-                            return (A.Data.Health or math.huge) < (B.Data.Health or math.huge)
-                        elseif KillAuraData.Settings.TargetMode == "Highest Health" then
-                            return (A.Data.Health or 0) > (B.Data.Health or 0)
-                        elseif KillAuraData.Settings.TargetMode == "Angle" then
-                            return A.Angle < B.Angle
+                    if Sword.Item and GameData.Utils.Store:getState().Game.matchState == GameData.Utils.MatchStates.RUNNING and Bloomware:IsAlive(LocalPlayer) then                        
+                        if KillAuraData.Settings.TriggerButton and not KillAuraData.Data.TriggerHeld then
+                            task.wait()
+                            return
                         end
-                        return A.Distance < B.Distance
-                    end)
 
-                    if KillAuraData.Settings.AttackMode == "Switch" and #Found > 1 then
-                        if tick() > KillAuraData.Data.SwitchAt then
-                            KillAuraData.Data.SwitchAt = tick() + 0.65
-                            KillAuraData.Data.SwitchIndex += 1
+                        local Humanoid: Humanoid = LocalPlayer.Character.Humanoid
+                        local HandItem = GetInventory().hand
+                        if KillAuraData.Settings.HandCheck then
+                            if HandItem and HandItem.tool then
+                                local Meta = GameData.Utils.ItemMeta[HandItem.itemType]
+                                if not Meta or not Meta.sword then
+                                    task.wait()
+                                    return
+                                end
+                            else
+                                task.wait()
+                                return
+                            end
                         end
-                        if not Found[KillAuraData.Data.SwitchIndex] then
-                            KillAuraData.Data.SwitchIndex = 1
+
+                        if KillAuraData.Settings.AttackableCheck then
+                            local StunnedUntil = LocalPlayer.Character:GetAttribute("StunnedUntilTime") or 0
+                            if StunnedUntil > workspace:GetServerTimeNow() then
+                                task.wait()
+                                return
+                            end
                         end
-                        Found = {Found[KillAuraData.Data.SwitchIndex]}
-                    end
 
-                    local HasPlayedSwing = false
-                    local Targets = {}
-                    for i = 1, math.min(#Found, KillAuraData.Settings.MaxTargets) do
-                        Targets[#Targets + 1] = Found[i]
-                    end
+                        if KillAuraData.Settings.AutoSwitch and (not HandItem or HandItem and (not HandItem.tool or HandItem.tool ~= Sword.Item)) then
+                            SwitchItem(Sword.Item, 0)
+                        end
 
-                    if #Targets > 0 then
-                        for _, Target in Targets do
-                            RenderAuraTarget(Target)
-                            if not GameData.Data.Target then
-                                GameData.Data.Target = Target
-                                KillAuraData.Data.LastSetTarget = true
-                            end
+                        if KillAuraData.Settings.AutoJump and Humanoid.FloorMaterial ~= Enum.Material.Air and Humanoid.MoveDirection.Magnitude > 0 then
+                            Humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
+                        end
 
-                            if Target.Distance > KillAuraData.Settings.Range then continue end
-                            if not CanAirHit(Target.Entity) then continue end
+                        local SwingRangeValue: number = math.max(KillAuraData.Settings.SwingRange, KillAuraData.Settings.Range)
+                        local Targets = GetAuraTargets(SwingRangeValue)
 
-                            local TargetRoot = Target.Data.Root or Target.Entity.PrimaryPart
-                            if not TargetRoot then continue end
+                        if #Targets > 0 then
+                            KillAuraData.Data.LastSetTarget = true
+                            GameData.Data.KillAuraTargets = Targets
+                            GameData.Data.Target = Targets[1]
 
-                            if not IsSafeToSend() then continue end
-                            if not CanHitWithCustomReg() then continue end
+                            local HasPlayedSwing = false
+                            for Index, Target in Targets do
+                                RenderAuraTarget(Target)
+                                if not GameData.Data.Target then
+                                    GameData.Data.Target = Target
+                                end
 
-                            local SelfPos = Root.Position
-                            local TargetPos = TargetRoot.Position + CalculateAuraPosition(SelfPos, TargetRoot)
-                            local Direction = CFrame.lookAt(SelfPos, TargetPos).LookVector
-                            local Distance = (TargetPos - SelfPos).Magnitude
-                            local Hitreg = GetHitreg(Distance)
-                            local HitPosition = SelfPos + Direction * math.max(Distance - Hitreg, 0)
+                                if Target.Distance <= KillAuraData.Settings.Range then
+                                    local TargetRoot: BasePart? = Target.Data.Root or Target.Entity.PrimaryPart
+                                    if not TargetRoot then
+                                        continue
+                                    end
 
-                            local SyncDelay = 0
-                            if KillAuraData.Settings.SyncHitTime then
-                                SyncDelay = math.clamp((14 - Hitreg) / 40, 0, 0.08)
-                            end
+                                    if not CanAirHit(Target.Entity) then
+                                        continue
+                                    end
 
-                            KillAuraData.Data.LastPacket = tick() + SyncDelay
-                            KillAuraData.Data.LastHit = os.clock()
-                            KillAuraData.Data.LastSwing = tick()
-                            KillAuraData.Data.ConsecutiveHits += 1
+                                    local SelfPos: Vector3 = LocalPlayer.Character.PrimaryPart.Position
+                                    local TargetPos: Vector3 = TargetRoot.Position + CalculateAuraPosition(SelfPos, TargetRoot)
+                                    local Direction: Vector3 = CFrame.lookAt(SelfPos, TargetPos).LookVector
+                                    local Distance: number = (TargetPos - SelfPos).Magnitude
+                                    local Hitreg: number = GetHitreg(Distance)
+                                    local HitPosition: Vector3 = SelfPos + Direction * math.max(Distance - Hitreg, 0)
+                                    local SyncDelay: number = KillAuraData.Settings.SyncHitTime and math.max(36 - Hitreg, 0) / 36 or 0
 
-                            if not KillAuraData.Settings.SafeMode then
-                                GameData.Utils.SwordController.lastAttack = workspace:GetServerTimeNow()
-                            end
+                                    if tick() < KillAuraData.Data.LastPacket then
+                                        continue
+                                    end
 
-                            pcall(function()
-                                GameData.Utils.Remotes:Get("SwordHit"):SendToServer({
-                                    entityInstance = Target.Entity,
-                                    chargedAttack = {chargeRatio = 0},
-                                    validate = {
-                                        targetPosition = {value = TargetPos},
-                                        raycast = {
-                                            cursorDirection = {value = Direction},
-                                            cameraPosition = {value = HitPosition}
+                                    if not CanHitWithCustomReg() then
+                                        continue
+                                    end
+
+                                    KillAuraData.Data.LastPacket = tick() + SyncDelay
+                                    KillAuraData.Data.LastHit = os.clock()
+                                    KillAuraData.Data.LastSwing = tick()
+                                    GameData.Utils.SwordController.lastAttack = workspace:GetServerTimeNow()
+
+                                    GameData.Utils.Remotes:Get("SwordHit"):SendToServer({
+                                        entityInstance = Target.Entity,
+                                        chargedAttack = {chargeRatio = 0},
+                                        validate = {
+                                            targetPosition = {value = TargetPos},
+                                            raycast = {
+                                                cursorDirection = {value = Direction},
+                                                cameraPosition = {value = HitPosition}
+                                            },
+                                            selfPosition = {value = HitPosition}
                                         },
-                                        selfPosition = {value = HitPosition}
-                                    },
-                                    weapon = Sword.Item
-                                })
-                            end)
+                                        weapon = Sword.Item
+                                    })
 
-                            if not HasPlayedSwing then
-                                HasPlayedSwing = true
-                                PlayAnim(self)
+                                    --TryFastHit(Target, SelfPos, HitPosition)
+
+                                    if not HasPlayedSwing then
+                                        HasPlayedSwing = true
+                                        PlayAnim(self)
+                                    end
+                                end
                             end
+                        elseif KillAuraData.Settings.ContinueSwinging > 0 and (tick() - KillAuraData.Data.LastSwing) <= KillAuraData.Settings.ContinueSwinging then
+                            PlayAnim(self)
+                        else
+                            if KillAuraData.Data.LastSetTarget then
+                                GameData.Data.Target = nil
+                                KillAuraData.Data.LastSetTarget = false
+                            end
+
+                            table.clear(GameData.Data.KillAuraTargets)
+                            ResetAuraVisuals()
                         end
-                    elseif KillAuraData.Settings.ContinueSwinging > 0 and (tick() - KillAuraData.Data.LastSwing) <= KillAuraData.Settings.ContinueSwinging then
-                        PlayAnim(self)
-                    else
-                        if KillAuraData.Data.LastSetTarget then
-                            GameData.Data.Target = nil
-                            KillAuraData.Data.LastSetTarget = false
-                        end
-                        table.clear(GameData.Data.KillAuraTargets)
-                        ResetAuraVisuals()
                     end
                 end))
             else
@@ -1987,15 +2234,23 @@ local CanFastHit = false
                     GameData.Data.Target = nil
                     KillAuraData.Data.LastSetTarget = false
                 end
+
                 table.clear(GameData.Data.KillAuraTargets)
                 KillAuraData.Data.AnimationPlaying = false
-                ResetAuraVisuals()
+
+                for i,v in KillAuraData.Data.Effects do
+                    for i2, v2 in v do
+                        v2:Destroy()
+                    end
+
+                    table.clear(v)
+                end
 
                 if KillAuraData.Data.OriginalHandPos then
-                    local ViewModel = GetViewModel()
-                    local RightHand = ViewModel and ViewModel:FindFirstChild("RightHand")
+                    local ViewModel: Model = GetViewModel()
+                    local RightHand: MeshPart = ViewModel and ViewModel:FindFirstChild("RightHand")
                     if ViewModel and RightHand then
-                        local RightWrist = RightHand:FindFirstChild("RightWrist")
+                        local RightWrist: Motor6D = RightHand:FindFirstChild("RightWrist")
                         if RightWrist then
                             TweenService:Create(RightWrist, TweenInfo.new(KillAuraData.Settings.AnimationRestoreTime), {C0 = KillAuraData.Data.OriginalHandPos}):Play()
                         end
@@ -2010,160 +2265,419 @@ local CanFastHit = false
         Flag = "KillAuraTrigger",
         Default = Enum.UserInputType.MouseButton1,
         Events = {
-            Began = function() KillAuraData.Data.TriggerHeld = true end,
-            Ended = function() KillAuraData.Data.TriggerHeld = false end
+            Began = function()
+                KillAuraData.Data.TriggerHeld = true
+            end,
+            Ended = function()
+                KillAuraData.Data.TriggerHeld = false
+            end
         }
     })
-
+    local MaxTargets
+    
     KillAura:Slider({
         Name = "Range",
         Flag = "KillAuraRange",
-        Min = 1, Max = 22, Default = 18,
-        CallingFunction = function(self, value) KillAuraData.Settings.Range = value end
+        Min = 1,
+        Max = 22,
+        Default = 22,
+        CallingFunction = function(self, value: number)
+            KillAuraData.Settings.Range = value
+        end
     })
 
     KillAura:Slider({
         Name = "Swing Range",
         Flag = "KillAuraSwingRange",
-        Min = 1, Max = 30, Default = 22,
-        CallingFunction = function(self, value) KillAuraData.Settings.SwingRange = value end
-    })
-
-    KillAura:Slider({
-        Name = "Hits Per Second",
-        Flag = "KillAuraHPS",
-        Min = 1, Max = 16, Default = 8,
-        CallingFunction = function(self, value) KillAuraData.Settings.HitsPerSecond = value end
+        Min = 1,
+        Max = 30,
+        Default = 22,
+        CallingFunction = function(self, value: number)
+            KillAuraData.Settings.SwingRange = value
+        end
     })
 
     KillAura:Slider({
         Name = "Hitreg",
         Flag = "KillAuraHitreg",
-        Min = 0, Max = 22, Default = 14,
-        CallingFunction = function(self, value) KillAuraData.Settings.Hitreg = value end
+        Min = 1,
+        Max = 36,
+        Default = 36,
+        Increment = 0.1,
+        CallingFunction = function(self, value: number)
+            KillAuraData.Settings.Hitreg = value
+        end
     })
 
     KillAura:Slider({
+        Name = "Continue Swinging",
+        Flag = "KillAuraContinueSwinging",
+        Min = 0,
+        Max = 2,
+        Default = 0,
+        Increment = 0.1,
+        CallingFunction = function(self, value: number)
+            KillAuraData.Settings.ContinueSwinging = value
+        end
+    })
+
+    KillAura:Slider({
+        Name = "Max Angle",
+        Flag = "KillAuraMaxAngle",
+        Min = 1,
+        Max = 360,
+        Default = 360,
+        CallingFunction = function(self, value: number)
+            KillAuraData.Settings.MaxAngle = value
+        end
+    })
+
+    MaxTargets = KillAura:Slider({
         Name = "Max Targets",
         Flag = "KillAuraMaxTargets",
-        Min = 1, Max = 5, Default = 3,
-        CallingFunction = function(self, value) KillAuraData.Settings.MaxTargets = value end
+        Min = 1,
+        Max = 10,
+        Default = 5,
+        CallingFunction = function(self, value: number)
+            KillAuraData.Settings.MaxTargets = value
+        end
+    })
+
+    KillAura:Dropdown({
+        Name = "Attack Mode",
+        Flag = "KillAuraAttackMode",
+        Default = "Switch",
+        Options = {"Single", "Multi", "Switch"},
+        CallingFunction = function(self, value: string)
+            KillAuraData.Settings.AttackMode = value
+            MaxTargets:SetVisiblity(value == "Multi")
+            KillAuraData.Data.SwitchIndex = 1
+            KillAuraData.Data.SwitchAt = 0
+        end
+    })
+
+    KillAura:Dropdown({
+        Name = "Targets",
+        Flag = "KillAuraTargets",
+        Default = {"Players", "Npcs"},
+        Options = {"Players", "Npcs"},
+        MaxLimit = 2,
+        MinLimit = 0,
+        CallingFunction = function(self, value: {})
+            if value.Players ~= nil or value.Npcs ~= nil then
+                KillAuraData.Settings.Targets = value
+            else
+                KillAuraData.Settings.Targets = {
+                    Players = table.find(value, "Players") ~= nil,
+                    Npcs = table.find(value, "Npcs") ~= nil
+                }
+            end
+        end
+    })  
+    
+    KillAura:Dropdown({
+        Name = "Target Mode",
+        Flag = "KillAuraTargetMode",
+        Default = "Distance",
+        Options = {"Distance", "Angle", "Lowest Health", "Highest Health"},
+        CallingFunction = function(self, value: string)
+            KillAuraData.Settings.TargetMode = value
+        end
+    })    
+
+    KillAura:Dropdown({
+        Name = "Target Priority",
+        Flag = "KillAuraTargetPriority",
+        Default = "Players",
+        Options = {"Players", "NPCs"},
+        CallingFunction = function(self, value: string)
+            KillAuraData.Settings.Priority = value
+        end
+    })
+
+    KillAura:Slider({
+        Name = "Delay",
+        Flag = "KillAuraDelay",
+        Min = 0,
+        Max = 3,
+        Default = 0,
+        Increment = 0.1,
+        CallingFunction = function(self, value: number)
+            KillAuraData.Settings.Delay = value
+        end
+    })
+
+    local HitsPerSecond = KillAura:Slider({
+        Name = "Hits Per Second",
+        Flag = "KillAuraHitsPerSecond",
+        Min = 1,
+        Max = 100,
+        Default = 50,
+        CallingFunction = function(self, value: number)
+            KillAuraData.Settings.HitsPerSecond = value
+        end
+    })
+
+    local FastHitsFireRate = KillAura:Slider({
+        Name = "Fast Hits Fire Rate",
+        Flag = "KillAuraFastHitsFireRate",
+        Min = 0,
+        Max = 2,
+        Default = 0.06,
+        Increment = 0.01,
+        CallingFunction = function(self, value: number)
+            KillAuraData.Settings.FastHitsFireRate = value
+        end
+    })
+
+    local AirHitsChance = KillAura:Slider({
+        Name = "Air Hits Chance",
+        Flag = "KillAuraAirHitsChance",
+        Min = 0,
+        Max = 100,
+        Default = 100,
+        Increment = 5,
+        CallingFunction = function(self, value: number)
+            KillAuraData.Settings.AirHitsChance = value
+        end
+    })
+
+    local TargetBoxTransparency = KillAura:Slider({
+        Name = "Box Transparency",
+        Flag = "KillAuraTargetBoxTransparency",
+        Min = 0,
+        Max = 1,
+        Default = 0.5,
+        Increment = 0.1,
+        CallingFunction = function(self, value: number)
+            KillAuraData.Settings.BoxTransparency = value
+        end
+    })
+
+    local ParticleRate = KillAura:Slider({
+        Name = "Particle Rate",
+        Flag = "KillAuraParticleRate",
+        Min = 0,
+        Max = 50,
+        Default = 40,
+        CallingFunction = function(self, value: number)
+            KillAuraData.Settings.ParticleRate = value
+        end
+    })
+
+    local ParticleLifeTime = KillAura:Slider({
+        Name = "Particle Time",
+        Flag = "KillAuraParticleLifeTime",
+        Min = 0,
+        Max = 5,
+        Default = 2,
+        Increment = 0.1,
+        CallingFunction = function(self, value: number)
+            KillAuraData.Settings.ParticleLifeTime = value
+        end
+    })
+
+    local TargetBoxColor = KillAura:ColorSlider({
+        Name = "Box Color",
+        Flag = "KillAuraTargetBoxColor",
+        Default = Color3.fromRGB(255, 0, 0),
+        CallingFunction = function(self, value: Color3)
+            KillAuraData.Settings.BoxColor = value
+        end
+    })
+
+    local ParticleColor = KillAura:ColorSlider({
+        Name = "Particle Color",
+        Flag = "KillAuraParticleColor",
+        Default = Color3.fromRGB(255, 0, 0),
+        CallingFunction = function(self, value: Color3)
+            KillAuraData.Settings.ParticleColor = value
+        end
+    })
+
+    local AnimationRestoreTime = KillAura:Slider({
+        Name = "Animation Restore",
+        Flag = "KillAuraAnimationRestoreTime",
+        Min = 0,
+        Max = 1,
+        Default = 0.5,
+        Increment = 0.01,
+        CallingFunction = function(self, value: number)
+            KillAuraData.Settings.AnimationRestoreTime = value
+        end
+    })
+
+    local AnimationPicker = KillAura:Dropdown({
+        Name = "Animation",
+        Flag = "KillAuraAnimation",
+        Default = "Bloomware",
+        Options = {"Bloomware", "Smooth", "Funny", "Stand", "Air", "Hit", "Rise", "Moon", "Lunar"},
+        CallingFunction = function(self, value: string)
+            KillAuraData.Settings.SelectedAnimation = value
+        end
     })
 
     KillAura:MiniToggle({
-        Name = "Safe Mode",
-        Flag = "KillAuraSafeMode",
-        Default = true,
-        CallingFunction = function(self, value) KillAuraData.Settings.SafeMode = value end
-    })
-
-    KillAura:MiniToggle({
-        Name = "Cooldown (AttackSpeed)",
-        Flag = "KillAuraCooldown",
-        Default = true,
-        CallingFunction = function(self, value) KillAuraData.Settings.Cooldown = value end
-    })
-
-    KillAura:MiniToggle({
-        Name = "Custom HitReg",
+        Name = "Custom Hit Reg",
         Flag = "KillAuraCustomHitReg",
-        Default = false,
-        CallingFunction = function(self, value) KillAuraData.Settings.CustomHitReg = value end
+        CallingFunction = function(self, value: boolean)
+            KillAuraData.Settings.CustomHitReg = value
+            KillAuraData.Data.LastCustomHit = 0
+            HitsPerSecond:SetVisiblity(value)
+        end
     })
 
     KillAura:MiniToggle({
         Name = "Dynamic Hits",
         Flag = "KillAuraDynamicHits",
         Default = true,
-        CallingFunction = function(self, value) KillAuraData.Settings.DynamicHits = value end
+        CallingFunction = function(self, value: boolean)
+            KillAuraData.Settings.DynamicHits = value
+        end
+    })
+
+    KillAura:MiniToggle({
+        Name = "Fast Hits",
+        Flag = "KillAuraFastHits",
+        CallingFunction = function(self, value: boolean)
+            KillAuraData.Settings.FastHits = value
+            FastHitsFireRate:SetVisiblity(value)
+            CanFastHit = value
+        end
+    })
+
+    KillAura:MiniToggle({
+        Name = "Fast Hits RL",
+        Flag = "KillAuraFastHitsLegit",
+        CallingFunction = function(self, value: boolean)
+            KillAuraData.Settings.FastHitsLegit = value
+        end
+    })
+
+    KillAura:TextBox({
+        Name = "Fast Hits Projectiles",
+        Flag = "KillAuraFastHitsProjectiles",
+        Default = "arrow, snowball",
+        CallingFunction = function(self, value: string)
+            UpdateFastHitProjectiles(value)
+        end
     })
 
     KillAura:MiniToggle({
         Name = "Sync Hit Time",
         Flag = "KillAuraSyncHitTime",
-        Default = true,
-        CallingFunction = function(self, value) KillAuraData.Settings.SyncHitTime = value end
-    })
-
-    KillAura:MiniToggle({
-        Name = "Auto Switch",
-        Flag = "KillAuraAutoSwitch",
-        Default = true,
-        CallingFunction = function(self, value) KillAuraData.Settings.AutoSwitch = value end
-    })
-
-    KillAura:MiniToggle({
-        Name = "Hand Check",
-        Flag = "KillAuraHandCheck",
-        Default = true,
-        CallingFunction = function(self, value) KillAuraData.Settings.HandCheck = value end
-    })
-
-    KillAura:MiniToggle({
-        Name = "Wall Check",
-        Flag = "KillAuraWallCheck",
-        Default = false,
-        CallingFunction = function(self, value) KillAuraData.Settings.WallCheck = value end
-    })
-
-    KillAura:MiniToggle({
-        Name = "Attackable Check",
-        Flag = "KillAuraAttackableCheck",
-        Default = true,
-        CallingFunction = function(self, value) KillAuraData.Settings.AttackableCheck = value end
+        CallingFunction = function(self, value: boolean)
+            KillAuraData.Settings.SyncHitTime = value
+        end
     })
 
     KillAura:MiniToggle({
         Name = "Air Hits",
         Flag = "KillAuraAirHits",
         Default = true,
-        CallingFunction = function(self, value) KillAuraData.Settings.AirHits = value end
+        CallingFunction = function(self, value: boolean)
+            KillAuraData.Settings.AirHits = value
+            AirHitsChance:SetVisiblity(value)
+        end
+    })
+
+    KillAura:MiniToggle({
+        Name = "Auto Jump",
+        Flag = "KillAuraAutoJump",
+        CallingFunction = function(self, value: boolean)
+            KillAuraData.Settings.AutoJump = value
+        end
+    })
+
+    KillAura:MiniToggle({
+        Name = "Target Box",
+        Flag = "KillAuraTargetBox",
+        Default = true,
+        CallingFunction = function(self, value: boolean)
+            KillAuraData.Settings.Boxes = value
+            TargetBoxTransparency:SetVisiblity(value)
+            TargetBoxColor:SetVisiblity(value)
+        end
+    })
+
+    KillAura:MiniToggle({
+        Name = "Particles",
+        Flag = "KillAuraParticles",
+        Default = true,
+        CallingFunction = function(self, value: boolean)
+            KillAuraData.Settings.Particles = value
+
+            ParticleLifeTime:SetVisiblity(value)
+            ParticleRate:SetVisiblity(value)
+            ParticleColor:SetVisiblity(value)
+        end
+    })
+
+    KillAura:MiniToggle({
+        Name = "Auto Switch",
+        Flag = "KillAuraAutoSwitch",
+        Default = true,
+        CallingFunction = function(self, value: boolean)
+            KillAuraData.Settings.AutoSwitch = value
+        end
+    })
+
+    KillAura:MiniToggle({
+        Name = "Hand Check",
+        Flag = "KillAuraHandCheck",
+        CallingFunction = function(self, value: boolean)
+            KillAuraData.Settings.HandCheck = value
+        end
+    })
+
+    KillAura:MiniToggle({
+        Name = "Wall Check",
+        Flag = "KillAuraWallCheck",
+        CallingFunction = function(self, value: boolean)
+            KillAuraData.Settings.WallCheck = value
+        end
+    })
+
+    KillAura:MiniToggle({
+        Name = "Attackable Check",
+        Flag = "KillAuraAttackableCheck",
+        CallingFunction = function(self, value: boolean)
+            KillAuraData.Settings.AttackableCheck = value
+        end
     })
 
     KillAura:MiniToggle({
         Name = "No Swing",
         Flag = "KillAuraNoSwing",
-        Default = false,
-        CallingFunction = function(self, value) KillAuraData.Settings.NoSwing = value end
+        CallingFunction = function(self, value: boolean)
+            KillAuraData.Settings.NoSwing = value
+        end
     })
 
     KillAura:MiniToggle({
-        Name = "Use Animation",
+        Name = "Trigger",
+        Flag = "KillAuraTriggerEnabled",
+        CallingFunction = function(self, value: boolean)
+            KillAuraData.Settings.TriggerButton = value
+            Trigger:SetVisiblity(value)
+        end
+    })
+
+    KillAura:MiniToggle({
+        Name = "Animation",
         Flag = "KillAuraUseAnimation",
-        Default = false,
-        CallingFunction = function(self, value) KillAuraData.Settings.UseAnimation = value end
+        Default = true,
+        CallingFunction = function(self, value: boolean)
+            KillAuraData.Settings.UseAnimation = value
+            AnimationRestoreTime:SetVisiblity(value)
+            AnimationPicker:SetVisiblity(value)
+        end
     })
 
-    KillAura:MiniToggle({
-        Name = "Trigger Button",
-        Flag = "KillAuraTriggerButton",
-        Default = false,
-        CallingFunction = function(self, value) KillAuraData.Settings.TriggerButton = value end
-    })
-
-    KillAura:Dropdown({
-        Name = "Attack Mode",
-        Flag = "KillAuraAttackMode",
-        Default = "Closest",
-        Options = {"Closest", "Switch"},
-        CallingFunction = function(self, value) KillAuraData.Settings.AttackMode = value end
-    })
-
-    KillAura:Dropdown({
-        Name = "Target Mode",
-        Flag = "KillAuraTargetMode",
-        Default = "Distance",
-        Options = {"Distance", "Lowest Health", "Highest Health", "Angle"},
-        CallingFunction = function(self, value) KillAuraData.Settings.TargetMode = value end
-    })
-
-    KillAura:Dropdown({
-        Name = "Priority",
-        Flag = "KillAuraPriority",
-        Default = "Players",
-        Options = {"Players", "NPCs"},
-        CallingFunction = function(self, value) KillAuraData.Settings.Priority = value end
-    })
+    HitsPerSecond:SetVisiblity(KillAuraData.Settings.CustomHitReg)
+    FastHitsFireRate:SetVisiblity(KillAuraData.Settings.FastHits)
+    AirHitsChance:SetVisiblity(KillAuraData.Settings.AirHits)
+    MaxTargets:SetVisiblity(KillAuraData.Settings.AttackMode == "Multi")
 end)();
 
 (function()
