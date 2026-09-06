@@ -904,15 +904,19 @@ local function FindWeakestSide(Bed: Part)
     local BlocksA, BlocksB = GetBlocksAroundPoint(Bed.Position, {}), GetBlocksAroundPoint(Bed.Position + Vector3.new(0, 0, 3), {})
     local BlockASides, BlockBSides = {}, {}
     local Health, Side, ActualSide = math.huge, {}, {}
+    
+    -- Safely construct the team check string to avoid concatenating nil
+    local PlayerTeam = GetPlayersTeam(LocalPlayer)
+    local TeamAttribute = PlayerTeam and ("Team" .. tostring(PlayerTeam) .. "NoBreak") or "TeamUnknownNoBreak"
 
     for i, v in BlocksA do
         BlockASides[i] = 0
         for i2, v2 in v do
-            if not v2.Block:GetAttribute("NoBreak") and not v2.Block:GetAttribute("Team"..tostring(GetPlayersTeam(LocalPlayer).."NoBreak")) and v2.Block ~= Bed then
+            if not v2.Block:GetAttribute("NoBreak") and not v2.Block:GetAttribute(TeamAttribute) and v2.Block ~= Bed then
                 local BlockData = GameData.Utils.BlockEngine:getStore():getBlockData(v2.BlockPosition)
                 local BlockHealth = BlockData and BlockData:GetAttribute(GameData.Utils.BlockEngine:getDefaultHealthKey())
                 if not BlockData or not BlockHealth then
-                    BlockHealth = v2.Block:GetAttribute("Health")
+                    BlockHealth = v2.Block:GetAttribute("Health") or 0
                 end
 
                 BlockASides[i] += BlockHealth
@@ -923,11 +927,11 @@ local function FindWeakestSide(Bed: Part)
     for i, v in BlocksB do
         BlockBSides[i] = 0
         for i2, v2 in v do
-            if not v2.Block:GetAttribute("NoBreak") and not v2.Block:GetAttribute("Team"..tostring(GetPlayersTeam(LocalPlayer).."NoBreak")) and v2.Block ~= Bed then
+            if not v2.Block:GetAttribute("NoBreak") and not v2.Block:GetAttribute(TeamAttribute) and v2.Block ~= Bed then
                 local BlockData = GameData.Utils.BlockEngine:getStore():getBlockData(v2.BlockPosition)
                 local BlockHealth = BlockData and BlockData:GetAttribute(GameData.Utils.BlockEngine:getDefaultHealthKey())
                 if not BlockData or not BlockHealth then
-                    BlockHealth = v2.Block:GetAttribute("Health")
+                    BlockHealth = v2.Block:GetAttribute("Health") or 0
                 end
 
                 BlockBSides[i] += BlockHealth
@@ -935,13 +939,13 @@ local function FindWeakestSide(Bed: Part)
         end
     end
 
-    for i,v in BlockASides do
+    for i, v in BlockASides do
         if Health > v then
             Health, Side, ActualSide = v, BlocksA, BlocksA[i]
         end
     end
 
-    for i,v in BlockBSides do
+    for i, v in BlockBSides do
         if Health > v then
             Health, Side, ActualSide = v, BlocksB, BlocksB[i]
         end
@@ -3045,10 +3049,10 @@ end)();
         Flag = "TargetHUD",
         CallingFunction = function(self, enabled: boolean)
             if enabled then
-                local Health = {
-                    Current = (LocalPlayer.Character and math.round(LocalPlayer.Character:GetAttribute("Health"))) or 0,
-                    Max = (LocalPlayer.Character and math.round(LocalPlayer.Character:GetAttribute("MaxHealth"))) or 0
-                }
+                Health = {
+    Current = (LocalPlayer.Character and math.round(LocalPlayer.Character:GetAttribute("Health") or 100)) or 0,
+    Max = (LocalPlayer.Character and math.round(LocalPlayer.Character:GetAttribute("MaxHealth") or 100)) or 0
+}
 
                 Bloomware:GetTargetHud(true, {Player = LocalPlayer, Health = Health})
                 repeat
@@ -3164,15 +3168,16 @@ end)();
                     local Bed = GetNearestBed()
                     if Bed.Bed and Distance >= Bed.Distance then
                         local BestSide = FindWeakestSide(Bed.Bed)
-                        local Item = BestSide[#BestSide]
-                        local ItemName = Item.Block.Name
-                        if Item then
-                            if table.find(CollectionService:GetTagged("bed"), Item.Block) then
-                                ItemName = "wood"
-                                Item.HitNormal = LastHitNormal
-                            else
-                                LastHitNormal = Item.HitNormal
-                            end
+                        local Item = BestSide and BestSide[#BestSide]
+
+if Item and Item.Block then
+    local ItemName = Item.Block.Name
+    if table.find(CollectionService:GetTagged("bed"), Item.Block) then
+        ItemName = "wood"
+        Item.HitNormal = LastHitNormal
+    else
+        LastHitNormal = Item.HitNormal
+    end
 
                             local BestTool = GetBestItemToBreakBlock(ItemName)
                             if BestTool.Item then
@@ -6466,14 +6471,14 @@ end)();
                 repeat task.wait() until GameData.Utils.Store:getState().Game.matchstate ~= 0
 
                 local function VoidDrop()
-                    if AutoVoidDropData.Other.Loop then
-                        AutoVoidDropData.Other.Loop:Disconnect()
-                        AutoVoidDropData.Other.Loop = nil
-                    end
+    if AutoVoidDropData.Other.Loop then
+        task.cancel(AutoVoidDropData.Other.Loop)
+        AutoVoidDropData.Other.Loop = nil
+    end
 
-                    local YLevel: number = GetYLevel()
-                    AutoVoidDropData.Other.Loop = self:Connection(task.spawn(function()
-                        repeat
+    local YLevel: number = GetYLevel()
+    AutoVoidDropData.Other.Loop = task.spawn(function()
+        repeat
                             if Bloomware:IsAlive(LocalPlayer) and (LocalPlayer.Character:GetAttribute('InflatedBalloons') or 0) <= 0 and LocalPlayer.Character.HumanoidRootPart.Position.Y <= (YLevel - AutoVoidDropData.Settings.Position) then
                                 if (AutoVoidDropData.Settings.Owl and not LocalPlayer.Character.HumanoidRootPart:FindFirstChild('OwlLiftForce')) or not AutoVoidDropData.Settings.Owl then
                                     for _, v in AutoVoidDropData.Settings.Items do
@@ -6488,9 +6493,9 @@ end)();
                                 end
                             end
                             task.wait(AutoVoidDropData.Settings.Delay)
-                        until not self.Enabled
-                    end))
-                end
+        until not self.Enabled
+    end)
+end
 
                 self:Connection(LocalPlayer.CharacterAdded:Connect(VoidDrop))
                 VoidDrop()
